@@ -63,15 +63,15 @@ static unsigned char leftarrow[8] =
     0b00010,
     0b00000
 };
-
+    
 // prototypes
-int initialization(int* const symbols);
-void printgame(const int *symbols);
-void slide(const char direction, int* thekeypos, int *symbols);
-void swap(int *a, int *b);
-bool check(int *symbols);
-void shuffle(int *array, size_t n);
-bool solvable(int *symbols, const int thekeypos);
+int initialization(int* symbols);
+void printgame(const int* symbols);
+void slide(const char direction, int* thekeypos, int* symbols);
+void swap(int* a, int* b);
+bool check(const int* const symbols);
+void shuffle(int* array, size_t n);
+bool solvable(const int* const symbols, const int thekeypos);
 void handler(int signal);
 void quit(void);
 
@@ -134,11 +134,11 @@ playagain: ;
         }
     }
 playagain2: ;
-	int symbols[SIZE];
-	for (int i = 0; i < SIZE; i++)
-	{
-		symbols[i] = i + 1;
-	}
+    int symbols[SIZE];
+    for (int i = 0; i < SIZE; i++)
+    {
+        symbols[i] = i + 1;
+    }
     int thekeypos = initialization(symbols);
 
     // check if the puzzle is solvable and solved to begin with
@@ -151,12 +151,12 @@ playagain2: ;
     while(1)
     {
         // print the game
-		printgame(symbols);
+        printgame(symbols);
 
         // delay for button press
         delay(500);
 
-		// control the direction input
+        // control the direction input
         while (1)
         {
             if (digitalRead(4) == HIGH && digitalRead(5) == HIGH && digitalRead(6) == HIGH && digitalRead(7) == HIGH)
@@ -229,26 +229,26 @@ playagain2: ;
             }
         }
     }
-	return 0;
+    return 0;
 }
 
 // initialize the game for the first time usage and return thekey position
-int initialization(int* const symbols)
+int initialization(int* symbols)
 {
     shuffle(symbols, SIZE);
-	for (int i = 0; i < SIZE; i++)
-	{
-	    if (symbols[i] == SIZE) 
+    for (int i = 0; i < SIZE; i++)
+    {
+        if (symbols[i] == SIZE) 
         {
             symbols[i] = THEKEY;
             return i;
         }
-	}
+    }
     return -1;
 }
 
 // prints the game state
-void printgame(const int *symbols)
+void printgame(const int* symbols)
 {
     lcdClear(lcdHandle);
     if (COLUMNS < 4)
@@ -267,16 +267,16 @@ void printgame(const int *symbols)
     if (COLUMNS == 2) {pos = 4; increment = 11;}
     if (COLUMNS == 3) {pos = 3; increment = 6;}
     if (COLUMNS == 4) {pos = 2; increment = 5;}
-	for (int i = 0; i < SIZE; i++)
-	{
-		if (i != 0 && i % COLUMNS == 0)
-		{
+    for (int i = 0; i < SIZE; i++)
+    {
+        if (i != 0 && i % COLUMNS == 0)
+        {
             counter++;
             if (COLUMNS == 2) {pos = 4;}
             if (COLUMNS == 3) {pos = 3;}
             if (COLUMNS == 4) {pos = 2;}
             lcdPosition(lcdHandle, pos, counter);
-		}
+        }
         if (symbols[i] != THEKEY)
         {
             lcdPosition(lcdHandle, pos, counter);
@@ -289,21 +289,21 @@ void printgame(const int *symbols)
             lcdPuts(lcdHandle, " ");
             pos += increment;
         }
-	}
+    }
 }
 
 // swipes the empty slot and the direction
-void slide(const char direction, int* thekeypos, int *symbols)
+void slide(const char direction, int* thekeypos, int* symbols)
 {
     // if it is not the leftmost selected and direction right is selected
-    if (*thekeypos % COLUMNS != 0 && direction == 'd')
+    if ((*thekeypos % COLUMNS) != 0 && direction == 'd')
     {
         swap(&symbols[*thekeypos], &symbols[*thekeypos - 1]);
         *thekeypos = *thekeypos - 1;
         return;
     }
     // if it is not the rightmost selected and direction left is selected
-    if ((*thekeypos % (COLUMNS)) != (COLUMNS - 1) && direction == 'a')
+    if ((*thekeypos % COLUMNS) != (COLUMNS - 1) && direction == 'a')
     {
         swap(&symbols[*thekeypos], &symbols[*thekeypos + 1]);
         *thekeypos = *thekeypos + 1;
@@ -317,7 +317,7 @@ void slide(const char direction, int* thekeypos, int *symbols)
         return;
     }
     // if it is not the uppermost selected and direction down is selected 
-    if (*thekeypos - COLUMNS >= 0 && direction == 's')
+    if ((*thekeypos - COLUMNS) >= 0 && direction == 's')
     {
         swap(&symbols[*thekeypos], &symbols[*thekeypos - COLUMNS]);
         *thekeypos = *thekeypos - COLUMNS;
@@ -326,7 +326,7 @@ void slide(const char direction, int* thekeypos, int *symbols)
 }
 
 // swap the two symbols
-void swap(int *a, int *b)
+void swap(int* a, int* b)
 {
     int temp = *a;
     *a = *b;
@@ -334,7 +334,7 @@ void swap(int *a, int *b)
 }
 
 // if the game is completed, returns 1
-bool check(int *symbols)
+bool check(const int* const symbols)
 {
     for (int i = 0; i < SIZE; i++)
     {
@@ -353,7 +353,7 @@ bool check(int *symbols)
  * if this may not be the case, use a better random
  * number generator. */
 // shuffles the given array (our symbols)
-void shuffle(int *array, size_t n)
+void shuffle(int* array, size_t n)
 {
     if (n > 1)
     {
@@ -371,7 +371,7 @@ void shuffle(int *array, size_t n)
 // http://people.math.sfu.ca/~jtmulhol/math302/notes/9-15-puzzle
 // https://www.cs.bham.ac.uk/~mdr/teaching/modules04/java2/TilesSolvability.html
 // returns 1 if the puzzle is solvable
-bool solvable(int *symbols, const int thekeypos)
+bool solvable(const int* const symbols, const int thekeypos)
 {
     int counter = 0;
     for (int i = 0; i < SIZE - 1; i++)
