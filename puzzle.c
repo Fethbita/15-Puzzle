@@ -3,27 +3,137 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <signal.h>
+
+#include <wiringPi.h>
+#include <lcd.h>
+
+#ifndef TRUE
+#  define   TRUE    (1==1)
+#  define   FALSE   (1==2)
+#endif
 
 // global variables
-#define SIZE 9
-#define COLUMNS 3
-#define ROWS 3
 #define THEKEY -42
+int SIZE = 0;
+int COLUMNS = 0;
+int ROWS = 0;
+static int lcdHandle;
+static unsigned char uparrow[8] =
+{
+    0b00000,
+    0b00000,
+    0b00000,
+    0b00100,
+    0b01110,
+    0b11111,
+    0b00000,
+    0b00000
+};
+static unsigned char downarrow[8] =
+{
+    0b00000,
+    0b00000,
+    0b00000,
+    0b11111,
+    0b01110,
+    0b00100,
+    0b00000,
+    0b00000
+};
+static unsigned char rightarrow[8] =
+{
+    0b00000,
+    0b00000,
+    0b01000,
+    0b01100,
+    0b01110,
+    0b01100,
+    0b01000,
+    0b00000
+};
+static unsigned char leftarrow[8] =
+{
+    0b00000,
+    0b00000,
+    0b00010,
+    0b00110,
+    0b01110,
+    0b00110,
+    0b00010,
+    0b00000
+};
 
 // prototypes
 int initialization(int* const symbols);
-void printgame(const int *symbols, const int selection);
-void moveSelection(int *selection, const char direction);
-void slide(const int selection, int *symbols);
+void printgame(const int *symbols);
+void slide(const char direction, int* thekeypos, int *symbols);
 void swap(int *a, int *b);
 bool check(int *symbols);
 void shuffle(int *array, size_t n);
 bool solvable(int *symbols, const int thekeypos);
+void handler(int signal);
+void quit(void);
 
 int main(void)
 {
     srand48(time(NULL));
+    signal(SIGINT, handler);
+    wiringPiSetup();
+    lcdHandle = lcdInit(4,20, 4, 11,10, 0,1,2,3,0,0,0,0);
+    lcdCharDef(lcdHandle, 0, uparrow);
+    lcdCharDef(lcdHandle, 1, downarrow);
+    lcdCharDef(lcdHandle, 2, rightarrow);
+    lcdCharDef(lcdHandle, 3, leftarrow);
 playagain: ;
+    lcdDisplay(lcdHandle, TRUE);
+    lcdClear(lcdHandle);
+    lcdHome(lcdHandle);
+    delay(3000);
+    lcdPuts(lcdHandle, "*****Game Mode*****");
+    lcdPosition(lcdHandle, 0, 1);
+    lcdPuts(lcdHandle, "       ");
+    lcdPutchar(lcdHandle, 0);
+    lcdPuts(lcdHandle, " HARD       ");
+    lcdPosition(lcdHandle, 0, 2);
+    lcdPuts(lcdHandle, "      ");
+    lcdPutchar(lcdHandle, 1);
+    lcdPuts(lcdHandle, " NORMAL      ");
+    lcdPosition(lcdHandle, 0, 3);
+    lcdPuts(lcdHandle, "  ");
+    lcdPutchar(lcdHandle, 3);
+    lcdPuts(lcdHandle, " EASY    ");
+    lcdPutchar(lcdHandle, 2);
+    lcdPuts(lcdHandle, " QUIT  ");
+    while (1)
+    {
+        if (digitalRead(4) == HIGH)
+        {
+            SIZE = 16;
+            COLUMNS = 4;
+            ROWS = 4;
+            break;
+        }
+        if (digitalRead(5) == HIGH)
+        {
+            SIZE = 9;
+            COLUMNS = 3;
+            ROWS = 3;
+            break;
+        }
+        if (digitalRead(6) == HIGH)
+        {
+            SIZE = 4;
+            COLUMNS = 2;
+            ROWS = 2;
+            break;
+        }
+        if (digitalRead(7) == HIGH)
+        {
+            quit();
+        }
+    }
+playagain2: ;
 	int symbols[SIZE];
 	for (int i = 0; i < SIZE; i++)
 	{
@@ -31,56 +141,92 @@ playagain: ;
 	}
     int thekeypos = initialization(symbols);
 
-    // check if the puzzle is solvable
-    // if it not go to the beginning
-    if (!solvable(symbols, thekeypos))
+    // check if the puzzle is solvable and solved to begin with
+    // if it is not solvable or it is solved go to the beginning
+    if (!solvable(symbols, thekeypos) || check(symbols) == 1)
     {
-        goto playagain;
+        goto playagain2;
     }
-
-    int selection = 0;
-    char direction = '?';
 
     while(1)
     {
-		printgame(symbols, selection);
-        if (check(symbols) == 1)
-        {
-            printf("\nYou have completed the game.\n");
-			do {
-                direction = '?';
-				printf("Would you like to play again? (y/n)\n");
-				scanf(" %c", &direction);
-				if (direction == 'y')
-				{
-					goto playagain;
-				}
-				else if (direction == 'n')
-				{
-					return 0;
-				}
-			} while (direction != 'y' && direction != 'n');
-        }
+        // print the game
+		printgame(symbols);
 
-		// Print the control mechanism
-        printf("\nd for right; a for left; w for up; s for down; f to move the piece\n");
+        // delay for button press
+        delay(500);
 
 		// control the direction input
-        scanf(" %c", &direction);
-		while (direction != 'd' && direction != 'a' && direction != 'w' && direction != 's' && direction != 'f')
+        while (1)
         {
-            printf("Wrong input\n");
-            scanf(" %c", &direction);
-		} 
-        printf("I am a character: %c\n", direction);
-
-        if (direction == 'd' || direction == 'a' || direction == 'w' || direction == 's')
-        {
-            moveSelection(&selection, direction);
+            if (digitalRead(4) == HIGH && digitalRead(5) == HIGH && digitalRead(6) == HIGH && digitalRead(7) == HIGH)
+            {
+                goto playagain;
+            }
+            if (digitalRead(4) == HIGH)
+            {
+                slide('w', &thekeypos, symbols);
+                break;
+            }
+            if (digitalRead(5) == HIGH)
+            {
+                slide('s', &thekeypos, symbols);
+                break;
+            }
+            if (digitalRead(6) == HIGH)
+            {
+                slide('a', &thekeypos, symbols);
+                break;
+            }
+            if (digitalRead(7) == HIGH)
+            {
+                slide('d', &thekeypos, symbols);
+                break;
+            }
         }
-        else if (direction == 'f')
+
+        // check if the game is ended
+        if (check(symbols) == 1)
         {
-            slide(selection, symbols);
+            lcdClear(lcdHandle);
+            lcdHome(lcdHandle);
+            delay(2500);
+            lcdPuts(lcdHandle, "   Congratulations  ");
+            lcdPosition(lcdHandle, 0, 1);
+            lcdPuts(lcdHandle, " You have completed ");
+            lcdPosition(lcdHandle, 0, 2);
+            lcdPuts(lcdHandle, "      the game      ");
+            lcdPosition(lcdHandle, 0, 3);
+            lcdPuts(lcdHandle, "Press to continue");
+            while (1)
+            {
+                if (digitalRead(4) == HIGH || digitalRead(5) == HIGH || digitalRead(6) == HIGH || digitalRead(7) == HIGH)
+                {
+                    break;
+                }
+            }
+            lcdClear(lcdHandle);
+            lcdHome(lcdHandle);
+            delay(2500);
+            lcdPuts(lcdHandle, "  Would you like to ");
+            lcdPosition(lcdHandle, 0, 1);
+            lcdPuts(lcdHandle, "     play again?    ");
+            lcdPosition(lcdHandle, 0, 3);
+            lcdPuts(lcdHandle, " (n) ");
+            lcdPutchar(lcdHandle, 1);
+            lcdPuts(lcdHandle, "         (y) ");
+            lcdPutchar(lcdHandle, 0);
+            while (1)
+            {
+                if (digitalRead(4) == HIGH)
+                {
+                    goto playagain;
+                }
+                if (digitalRead(5) == HIGH)
+                {
+                    quit();
+                }
+            }
         }
     }
 	return 0;
@@ -102,117 +248,79 @@ int initialization(int* const symbols)
 }
 
 // prints the game state
-void printgame(const int *symbols, const int selection)
+void printgame(const int *symbols)
 {
+    lcdClear(lcdHandle);
+    if (COLUMNS < 4)
+    {
+        lcdPosition(lcdHandle, 2, 3);
+        lcdPutchar(lcdHandle, 0);
+        lcdPosition(lcdHandle, 7, 3);
+        lcdPutchar(lcdHandle, 1);
+        lcdPosition(lcdHandle, 12, 3);
+        lcdPutchar(lcdHandle, 2);
+        lcdPosition(lcdHandle, 17, 3);
+        lcdPutchar(lcdHandle, 3);
+    }
+    lcdHome(lcdHandle);
+    int counter = 0, pos, increment;
+    if (COLUMNS == 2) {pos = 4; increment = 11;}
+    if (COLUMNS == 3) {pos = 3; increment = 6;}
+    if (COLUMNS == 4) {pos = 2; increment = 5;}
 	for (int i = 0; i < SIZE; i++)
 	{
 		if (i != 0 && i % COLUMNS == 0)
 		{
-			printf("\n");
+            counter++;
+            if (COLUMNS == 2) {pos = 4;}
+            if (COLUMNS == 3) {pos = 3;}
+            if (COLUMNS == 4) {pos = 2;}
+            lcdPosition(lcdHandle, pos, counter);
 		}
-		if (selection == i)
-		{
-			if (symbols[i] != THEKEY)
-			{
-				printf("|%d|\t", symbols[i]);
-			}
-			else
-			{
-				printf("| |\t");
-			}
-		}
-		else
-		{
-			if (symbols[i] != THEKEY)
-			{
-				printf(" %d\t", symbols[i]);
-			}
-			else
-			{
-				printf(" \t");
-			}
-		}
+        if (symbols[i] != THEKEY)
+        {
+            lcdPosition(lcdHandle, pos, counter);
+            lcdPrintf(lcdHandle, "%d", symbols[i]);
+            pos += increment;
+        }
+        else
+        {
+            lcdPosition(lcdHandle, pos, counter);
+            lcdPuts(lcdHandle, " ");
+            pos += increment;
+        }
 	}
 }
 
-// moves the selection cursor
-void moveSelection(int *selection, const char direction)
+// swipes the empty slot and the direction
+void slide(const char direction, int* thekeypos, int *symbols)
 {
-	if (direction == 'd')
-	{
-		if ((*selection % (COLUMNS)) == (COLUMNS - 1))
-		{
-			*selection = *selection - (COLUMNS - 1);
-		}
-		else
-		{
-			*selection = *selection + 1;
-		}
-        return;
-	}
-	else if (direction == 'a')
-	{
-		if ((*selection % (COLUMNS)) == 0)
-		{
-			*selection = *selection + (COLUMNS - 1);
-		}
-		else
-		{
-			*selection = *selection - 1;
-		}
-        return;
-	}
-	else if (direction == 's')
-	{
-		if (*selection >= (COLUMNS * (ROWS - 1)))
-		{
-			*selection = *selection - (COLUMNS * (ROWS - 1));
-		}
-		else
-		{
-			*selection = *selection + COLUMNS;
-		}
-        return;
-	}
-	else if (direction == 'w')
-	{
-		if (*selection - COLUMNS < 0)
-		{
-			*selection = *selection + (COLUMNS * (ROWS - 1));
-		}
-		else
-		{
-			*selection = *selection - COLUMNS;
-		}
-        return;
-	}
-}
-
-// swipes the selection and the empty slot
-void slide(const int selection, int *symbols)
-{
-    // if it is not the leftmost selected and has thekey on its' left
-    if (selection % COLUMNS != 0 && symbols[selection - 1] == THEKEY)
+    // if it is not the leftmost selected and direction right is selected
+    if (*thekeypos % COLUMNS != 0 && direction == 'd')
     {
-        swap(&symbols[selection], &symbols[selection - 1]);
+        swap(&symbols[*thekeypos], &symbols[*thekeypos - 1]);
+        *thekeypos = *thekeypos - 1;
         return;
     }
-    // if it is not the rightmost selected and has thekey on its' right 
-    if ((selection % (COLUMNS)) != (COLUMNS - 1) && symbols[selection + 1] == THEKEY)
+    // if it is not the rightmost selected and direction left is selected
+    if ((*thekeypos % (COLUMNS)) != (COLUMNS - 1) && direction == 'a')
     {
-        swap(&symbols[selection], &symbols[selection + 1]);
+        swap(&symbols[*thekeypos], &symbols[*thekeypos + 1]);
+        *thekeypos = *thekeypos + 1;
         return;
     }
-    // if it is not the downmost selected and has thekey on its' down
-    if (selection < (COLUMNS * (ROWS - 1)) && symbols[selection + COLUMNS] == THEKEY)
+    // if it is not the downmost selected and direction up is selected
+    if (*thekeypos < (COLUMNS * (ROWS - 1)) && direction == 'w')
     {
-        swap(&symbols[selection], &symbols[selection + COLUMNS]);
+        swap(&symbols[*thekeypos], &symbols[*thekeypos + COLUMNS]);
+        *thekeypos = *thekeypos + COLUMNS;
         return;
     }
-    // if it is not the uppermost selected and has thekey on its' up
-    if (selection - COLUMNS >= 0 && symbols[selection - COLUMNS] == THEKEY)
+    // if it is not the uppermost selected and direction down is selected 
+    if (*thekeypos - COLUMNS >= 0 && direction == 's')
     {
-        swap(&symbols[selection], &symbols[selection - COLUMNS]);
+        swap(&symbols[*thekeypos], &symbols[*thekeypos - COLUMNS]);
+        *thekeypos = *thekeypos - COLUMNS;
         return;
     }
 }
@@ -295,4 +403,42 @@ bool solvable(int *symbols, const int thekeypos)
     {
         return 0;
     }
+}
+
+// Handler
+void handler(int signal)
+{
+    if (signal == SIGINT)
+    {
+        quit();
+    }
+}
+
+// Clears the screen and quits the program
+void quit(void)
+{
+    lcdClear(lcdHandle);
+    lcdPosition(lcdHandle, 0, 1);
+    lcdPuts(lcdHandle, "     BYE BYE...     ");
+    lcdPosition(lcdHandle, 9, 2);
+    lcdPuts(lcdHandle, "5");
+    delay(1000);
+    lcdPosition(lcdHandle, 9, 2);
+    lcdPuts(lcdHandle, "4");
+    delay(1000);
+    lcdPosition(lcdHandle, 9, 2);
+    lcdPuts(lcdHandle, "3");
+    delay(1000);
+    lcdPosition(lcdHandle, 9, 2);
+    lcdPuts(lcdHandle, "2");
+    delay(1000);
+    lcdPosition(lcdHandle, 9, 2);
+    lcdPuts(lcdHandle, "1");
+    delay(1000);
+    lcdPosition(lcdHandle, 9, 2);
+    lcdPuts(lcdHandle, "0");
+    delay(100);
+    lcdClear(lcdHandle);
+    lcdDisplay(lcdHandle, FALSE);
+    exit(0);
 }
