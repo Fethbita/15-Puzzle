@@ -4,7 +4,7 @@
 
 ## Demonstration
 
-The following is a recording of the normal difficulty gameplay emulated using https://wokwi.com/
+The following is a recording of the normal difficulty gameplay emulated using [Wokwi](https://wokwi.com/):
 
 ![15 Puzzle Normal Difficulty Gameplay](/15puzzle_normal_gameplay.gif "15 Puzzle Normal Difficulty Gameplay")
 
@@ -18,9 +18,12 @@ The following is a recording of the normal difficulty gameplay emulated using ht
 
 ## Raspberry PI Model B+
 
+[Fritzing](https://fritzing.org/) Breadboard Model of Raspberry PI Model B+ (what I originally implemented for)
+
 ![Raspberry PI Fritzing Model](/15puzzle_rpi_bb.png "Raspberry PI Fritzing Breadboard Model")
 
 ## Arduino Nano
 
-![Arduino Nano Fritzing Model](/15puzzle_arduino_bb.png "Arduino Nano Fritzing Breadboard Model")
+[Fritzing](https://fritzing.org/) Breadboard Model of Arduino Nano
 
+![Arduino Nano Fritzing Model](/15puzzle_arduino_bb.png "Arduino Nano Fritzing Breadboard Model")
