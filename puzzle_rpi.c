@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include <signal.h>
 
@@ -416,10 +417,10 @@ bool check(const int* const symbols)
 	{
 		if (symbols[i] != i + 1 && symbols[i] != THEKEY)
 		{
-			return 0;
+			return false;
 		}
 	}
-	return 1;
+	return true;
 }
 
 // http://benpfaff.org/writings/clc/shuffle.html
@@ -463,21 +464,21 @@ bool solvable(const int* const symbols, const int thekeypos)
 	// If the width is odd, then every solvable state has an even number of inversions
 	if ((COLUMNS % 2) && !(counter % 2))
 	{
-		return 1;
+		return true;
 	}
 	// If the width is even, then every solvable state has an even number of inversions if the blank is on an odd numbered row counting from the bottom
 	else if (!(COLUMNS % 2) && ((((thekeypos / COLUMNS) % 2) + ROWS) % 2) && !(counter % 2))
 	{
-		return 1;
+		return true;
 	}
 	// If the width is even, then every solvable state has an odd number of inversions if the blank is on an even numbered row counting from the bottom
 	else if (!(COLUMNS % 2) && !((((thekeypos / COLUMNS) % 2) + ROWS) % 2) && (counter % 2))
 	{
-		return 1;
+		return true;
 	}
 	else
 	{
-		return 0;
+		return false;
 	}
 }
 
