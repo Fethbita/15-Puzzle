@@ -18,6 +18,8 @@ The following is a recording of the normal difficulty gameplay emulated using [W
 
 ## Raspberry PI Model B+
 
+Raspberry PI version requires the deprecated [wiringPi](http://wiringpi.com/) library. It can be installed from the [unofficial wiringPi mirror](https://github.com/WiringPi/WiringPi).
+
 [Fritzing](https://fritzing.org/) Breadboard Model of Raspberry PI Model B+ (what I originally implemented for)
 
 ![Raspberry PI Fritzing Model](/15puzzle_rpi_bb.png "Raspberry PI Fritzing Breadboard Model")
